@@ -25,8 +25,10 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Set up Gradle
+      - name: Set up Gradle 8.14.3
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
 
       - name: Check ZIP exists
         run: |
@@ -59,8 +61,9 @@ jobs:
         run: |
           sed -i '/archivesBaseName[[:space:]]*=/d' fabric-mod/build.gradle
           printf '\nbase {\n    archivesName = "pelican-client"\n}\n' >> fabric-mod/build.gradle
-          echo "=== Updated Fabric build.gradle ==="
-          cat fabric-mod/build.gradle
+
+      - name: Check Gradle version
+        run: gradle --version
 
       - name: Build Fabric mod
         working-directory: source/PelicanClient-Starter
