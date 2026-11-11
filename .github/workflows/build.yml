@@ -4,17 +4,19 @@ name: Build Pelican Client
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
 
 permissions:
   contents: read
 
 jobs:
   build:
+    name: Compile Pelican Client
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Java 21
@@ -26,17 +28,42 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Extract project
+      - name: Check ZIP exists
         run: |
-          unzip PelicanClient-Android-Fabric-1.21.11-Starter.zip -d source
+          ls -la
+          test -f PelicanClient-Android-Fabric-1.21.11-Starter.zip
+
+      - name: Extract Pelican Client
+        run: |
+          unzip -o PelicanClient-Android-Fabric-1.21.11-Starter.zip -d source
+          echo "=== Extracted project ==="
+          find source -maxdepth 3 -type f | sort
+
+      - name: Fix Gradle repository configuration
+        working-directory: source/PelicanClient-Starter
+        run: |
+          sed -i \
+            -e 's/RepositoriesMode\.PREFER_SETTINGS/RepositoriesMode.PREFER_PROJECT/g' \
+            -e 's/RepositoriesMode\.FAIL_ON_PROJECT_REPOS/RepositoriesMode.PREFER_PROJECT/g' \
+            settings.gradle
+          echo "=== Updated settings.gradle ==="
+          cat settings.gradle
+
+      - name: Verify Gradle project
+        working-directory: source/PelicanClient-Starter
+        run: |
+          test -f settings.gradle
+          test -f build.gradle
+          test -f fabric-mod/build.gradle
 
       - name: Build Fabric mod
         working-directory: source/PelicanClient-Starter
-        run: gradle :fabric-mod:build
+        run: gradle :fabric-mod:build --stacktrace
 
-      - name: Upload JAR
+      - name: Upload compiled JAR
         uses: actions/upload-artifact@v4
         with:
           name: Pelican-Client-JAR
           path: source/PelicanClient-Starter/fabric-mod/build/libs/*.jar
           if-no-files-found: error
+          retention-days: 14
