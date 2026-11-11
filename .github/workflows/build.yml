@@ -62,6 +62,37 @@ jobs:
           sed -i '/archivesBaseName[[:space:]]*=/d' fabric-mod/build.gradle
           printf '\nbase {\n    archivesName = "pelican-client"\n}\n' >> fabric-mod/build.gradle
 
+      - name: Fix Minecraft 1.21.11 key category
+        working-directory: source/PelicanClient-Starter
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          source = Path(
+              "fabric-mod/src/main/java/dev/pelican/client/PelicanClient.java"
+          )
+
+          code = source.read_text()
+
+          old = '"category.pelicanclient"'
+          new = (
+              'KeyMapping.Category.register('
+              'net.minecraft.resources.Identifier.fromNamespaceAndPath('
+              '"pelicanclient", "controls"))'
+          )
+
+          count = code.count(old)
+
+          if count != 1:
+              raise SystemExit(
+                  f"Expected exactly one old key category, found {count}"
+              )
+
+          source.write_text(code.replace(old, new))
+
+          print("Successfully updated the Minecraft 1.21.11 key category.")
+          PY
+
       - name: Check Gradle version
         run: gradle --version
 
